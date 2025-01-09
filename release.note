@@ -1,0 +1,36 @@
+2024-12-06
+RSCLN_241206.mcs
+first full operational with serial fpga uart at 300000baud 
+
+2024-11-26
+RSCLN_241126.mcs
+last full operational with serial fpga uart at 115200bd 
+
+2024-11-24
+RSCLN_241124.mcs
+Added dip switches reading
+Added data file spi at offset 4MB (of 8MB of the s25fl064)
+Added spi master (not used yet)
+Added reset with ack on uart (frame @..)
+Added protection of coils (V0 for test)
+
+
+2024-11-22
+RSCLN_241115.mcs
+gameprom is 1K ram with initial as crazy race (same 256Bx4)
+A1762 prom is cr A1762 prom (alternate A1762 from 2716. no coil check) 
+compat with WiFlip 0.93
+reprog mode installed and complete
+switch matrix new generation (can set it to on permanently)
+First implementation with this project that was rebuilt from scratch (copy files by hand from corrupted proj)
+
+
+#memento:
+sometimes use this when you have problems
+set_param labtools.override_cs_server_version_check 1
+
+typical write cfg command:
+write_cfgmem  -format mcs -size 8 -interface SPIx4 -loadbit {up 0x00000000 "C:/Users/garzo/vvd_proj/RS3C1B2/RS3C1B2.runs/impl_1/rs3cctrl.bit" } -loaddata {up 0x00400000 "C:/Xilinx/Vivado/2022.2/data/ip/xilinx/pcie4c_uscale_plus_v1_0/sim/demo_st2_bitfile.bin" } -checksum -file "C:/Users/garzo/vvd_proj/RS3C1B2/RSCLN_241124.mcs"
+
+
+write_cfgmem  -format mcs -size 8 -interface SPIx4 -loadbit {up 0x00000000 "C:/Users/garzo/vvd_proj/RS3C1B2/RS3C1B2.runs/impl_1/rs3cctrl.bit" } -loaddata {up 0x00400000 "C:/Users/garzo/git/pps4asm/tools/recel_games/makegamesrom/genroms/data.bin" } -checksum -force -file "C:/Users/garzo/vvd_proj/RS3C1B2/RSCLN_241125.mcs"
