@@ -3,7 +3,7 @@
   "ip_inst": {
     "xci_name": "DBL1024RAM",
     "component_reference": "xilinx.com:ip:blk_mem_gen:8.4",
-    "ip_revision": "9",
+    "ip_revision": "10",
     "gen_directory": "../../../../RS3C1B2.gen/sources_1/ip/DBL1024RAM",
     "parameters": {
       "component_parameters": {
@@ -173,12 +173,12 @@
       },
       "runtime_parameters": {
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
-        "IPREVISION": [ { "value": "9" } ],
+        "IPREVISION": [ { "value": "10" } ],
         "MANAGED": [ { "value": "TRUE" } ],
         "OUTPUTDIR": [ { "value": "../../../../RS3C1B2.gen/sources_1/ip/DBL1024RAM" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
-        "SWVERSION": [ { "value": "2024.2" } ],
+        "SWVERSION": [ { "value": "2024.2.1" } ],
         "SYNTHESISFLOW": [ { "value": "OUT_OF_CONTEXT" } ]
       }
     },

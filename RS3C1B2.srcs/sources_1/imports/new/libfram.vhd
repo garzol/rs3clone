@@ -45,6 +45,14 @@ constant cFramReset     : std_logic_vector(2 downto 0) := "111";
 constant cFramRead      : std_logic_vector(2 downto 0) := "101";
 constant cFramWrite     : std_logic_vector(2 downto 0) := "110";
 
+
+-- mapping of sys ram (double port ram of nvram) zone (specified in byte count from base address (not in nibble count!)
+constant cSRModel_0      : std_logic_vector(6 downto 0) := "0010010";  --if model is 1053, content is X"01"
+constant cSRModel_1      : std_logic_vector(6 downto 0) := "0010011";  --if model is 1053, content is X"35"
+constant cSRSerial0      : std_logic_vector(6 downto 0) := "0010101";  --content is X"x3", x is the msb of serial#
+constant cSRSerial1      : std_logic_vector(6 downto 0) := "0010110";  --serial 2 digits in the middle
+constant cSRSerial2      : std_logic_vector(6 downto 0) := "0010111";  --serial lsb 2 digits
+
 -- mapping of config zone (specified in byte count from base address (not in nibble count!)
 constant cSCFmtAdd0      : std_logic_vector(6 downto 0) := "0000000";
 constant cSCFmtAdd1      : std_logic_vector(6 downto 0) := "0000001";

@@ -72,6 +72,8 @@ entity startupmng is
            r_device         : out       std_logic_vector(2 downto 0);  
 
            settings1        : out       std_logic_vector(7 downto 0);
+           ident            : in        std_logic_vector(8*8-1 downto 0);
+           id_configured    : in        std_logic;
            status           : out       std_logic_vector(7 downto 0)
 
            
@@ -111,6 +113,7 @@ type st_start_type is (st_boot,       st_iicRst,
                        st_fmtSysCnf,  st_sysramLoad,
                        st_mnpLoad,    st_syscnfFlash,
                        st_mnpFlash,   st_mainLoop,
+                       st_setSerial,  st_initcrcs,
                        st_idle);
 
 --signal r_size_int         : unsigned(10 downto 0)          := "00010000000";
@@ -200,7 +203,7 @@ begin
 -- reset iic then write values to fram for testing                                     
 process_iic:    process(hiclk)
     variable state             : st_start_type := st_boot;
-    variable substate          : integer range 0 to 2047 := 0;
+    variable substate          : integer range 0 to 4095 := 0;
     variable subsubstate       : integer range 0 to 2047 := 0;
     variable subsubsubstate    : integer range 0 to 63   := 0;
     
@@ -211,6 +214,10 @@ process_iic:    process(hiclk)
     variable mem_sz            : natural range 0 to 2047;    -- actually 256 | 1024, for now
 	variable numbyt_dr         : natural range 0 to 2047 := 0;  -- dedicated to nvram dump
 
+    --this is a flag to remember that we are in a boot with an incorrect format string
+    --set or not during st_readcnfData, reset during startup, used to go to st_setSerial, or direct to mainloop
+    variable is_factory_rst    : boolean := false;
+
     begin
         if (rising_edge(hiclk)) then
             if brd_po = '1' then
@@ -218,6 +225,7 @@ process_iic:    process(hiclk)
                 substate       := 0;
                 subsubstate    := 0;
                 subsubsubstate := 0;
+                is_factory_rst := false;
                 start_nvr_cmd_b <= '0'; 
                 nvr_cmd_b       <= cFramNop;
                 cpu_po_int   <= '1';
@@ -333,45 +341,7 @@ process_iic:    process(hiclk)
                                 end if;
                         end case;  
 
---start of old version                        
---                    when st_chkgFltch     =>
---                        case substate is  
---                            when 0     =>
---                                fltch_reset     <= '1';
---                                fltch_cmdclk    <= not fltch_cmdclk;
---                                mem_sz          := 256;
---                                numbyt_dr       := 0;
---                                substate        := 1;
---                            when 1     =>
---                                r_device_b      <= "100";  --game prom 256b
---                                bd_addr_b       <= std_logic_vector(to_unsigned(numbyt_dr, bd_addr_b'length));
---                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
---                                nvr_cmd_b       <= cFramBufRead;  --read byte
---                                substate        := 2;
---                            when 2 =>
---                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
---                                substate := 3;
---                            when 3 =>
---                                if  is_nvr_cmd_done = '1' then
---                                    fltch_reset     <= '0';
---                                    fltch_nbyte     <= bd_dout;
---                                    fltch_cmdclk    <= not fltch_cmdclk;
---                                    numbyt_dr       := numbyt_dr + 1;
---                                    if numbyt_dr >= mem_sz then
---                                        substate := 4;
---                                    else
---                                        substate := 1;
---                                    end if;
---                                end if;
---                            when others =>
---                                --fltch_crc contains the crc: save it to fltch_crc_g
---                                fltch_crc_g  <= fltch_crc;
---                                state    := st_rLoad; --st_syscnfLoad; pHd_MARKED
---                                substate := 0;
---                                nvr_cmd_b <= cFramNop;
 
---                        end case;
---end of old version
 --start of new version                        
                     when st_chkgFltch     =>
                         r_device_b      <= "100";  --game prom 256b
@@ -436,47 +406,7 @@ process_iic:    process(hiclk)
                                 end if;
                         end case;  
                         
---start of old version                        
---                    when st_chkrFltch     =>
---                        case substate is  
---                            when 0     =>
---                                fltch_reset     <= '1';
---                                fltch_cmdclk    <= not fltch_cmdclk;
---                                mem_sz          := 1024; --test test
---                                numbyt_dr       := 0;
---                                substate        := 1;
---                                bd_addr_b       <= (others => '0'); --we will range from 0 to mem_sz-1
---                            when 1     =>
---                                r_device_b      <= "101"; --test test --game prom 256b
---                                --bd_addr_b       <= std_logic_vector(to_unsigned(numbyt_dr, bd_addr_b'length));
---                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
---                                nvr_cmd_b       <= cFramBufRead;  --read byte
---                                substate        := 2;
---                            when 2 =>
---                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
---                                substate := 3;
---                            when 3 =>
---                                if  is_nvr_cmd_done = '1' then
---                                    fltch_reset     <= '0';
---                                    fltch_nbyte     <= bd_dout;
---                                    fltch_cmdclk    <= not fltch_cmdclk;
---                                    bd_addr_b       <= std_logic_vector( unsigned(bd_addr_b) + 1 );
---                                    numbyt_dr       := numbyt_dr + 1;
---                                    if numbyt_dr > mem_sz then
---                                        substate := 4;
---                                    else
---                                        substate := 1;
---                                    end if;
---                                end if;
---                            when others =>
---                                --fltch_crc contains the crc: save it to fltch_crc_g
---                                fltch_crc_r  <= fltch_crc;
---                                state    := st_syscnfLoad;
---                                substate := 0;
---                                nvr_cmd_b <= cFramNop;
 
---                        end case;
---end of old version
 --start of new version                        
                     when st_chkrFltch     =>
                         r_device_b      <= "101"; --test test --A1762 prom 1KB
@@ -794,6 +724,7 @@ process_iic:    process(hiclk)
                                 
                             when others =>                                
                                 if fmtPattern /= cSCFmtData0&cSCFmtData1&cSCFmtData2 then
+                                    is_factory_rst := true;                                
                                     scNvrMode   <= cSCSRCVirtHM65;
                                     scSettings1 <= (others=>'0');
                                     substate := 0;
@@ -811,6 +742,7 @@ process_iic:    process(hiclk)
                                             state    := st_mnpLoad; --load miniprinter data
                                         when others          =>
                                             --cSCFactoryReset or undefined...
+                                            is_factory_rst := true;
                                             scNvrMode   <= cSCSRCVirtHM65;
                                             scSettings1 <= (others=>'0');
                                             substate := 0;
@@ -949,48 +881,65 @@ process_iic:    process(hiclk)
                     -- Here from either the factory reset branch (st_syscnfFlash) or st_readcnfData 
                     -- We load the miniprinter data from its iic location                    
                     when st_mnpLoad     =>
-                        -- load miniprinter from iic fram
+                        -- load miniprinter from iic fram. Only if we are not in a factory reset
+                        -- because if factory reset  we will use the data of the coe file for the corresponding IP
                         -- required for wifi iface
                         case substate is  
                             when 0 =>
-                                r_device_b      <= "010";  --mnprn ram --
-                                r_size_b        <= to_unsigned(128, r_size_b'length);    --block size to be transferred
-                                r_baseAddr_b    <= cIICMnprnBase;                      --base address in the fram                        
-                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
-                                nvr_cmd_b       <= cFramRead;  --read all
-                                substate := 1;
+                                if is_factory_rst = false then
+                                    r_device_b      <= "010";  --mnprn ram --
+                                    r_size_b        <= to_unsigned(128, r_size_b'length);    --block size to be transferred
+                                    r_baseAddr_b    <= cIICMnprnBase;                      --base address in the fram                        
+                                    start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                    nvr_cmd_b       <= cFramRead;  --read all
+                                    substate := substate + 1;
+                                else
+                                    substate := 3;
+                                end if;
                             when 1 =>
                                 start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
-                                substate := 2;
+                                substate := substate + 1;
                             when others =>
                                 if  is_nvr_cmd_done = '1' then
                                     state    := st_sysramLoad;
                                     substate := 0;
                                 end if;
                         end case;  
-                    
+                                                                                
+        
                     -- state is load sys ram from iic fram subsection miniprinter or hmsys whether the config is
                     when st_sysramLoad =>
                         case substate is 
                             when 0 =>
-                                r_device_b     <= "001";      --hm6508  ram. ie MYNVRAMMIRROR (double port ram)                                
-                                if scNvrMode = cSCSRCMiniPrn then
-                                    r_baseAddr_b <= cIICMnprnBase;   --base address in the fram                        
+                                if is_factory_rst = false then
+                                    r_device_b     <= "001";      --hm6508  ram. ie MYNVRAMMIRROR (double port ram)                                
+                                    if scNvrMode = cSCSRCMiniPrn or is_factory_rst = true then
+                                        r_baseAddr_b <= cIICMnprnBase;   --base address in the fram                        
+                                    else
+                                        r_baseAddr_b <= cIICHmsysBase;   --base address in the fram                        
+                                    end if;
+                                    r_size_b        <= to_unsigned(128, r_size_b'length);       --block size to be transferred
+                                    start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0         
+                                    nvr_cmd_b       <= cFramRead;  --read all
+                                    substate := 1;
                                 else
-                                    r_baseAddr_b <= cIICHmsysBase;   --base address in the fram                        
+                                    substate := 3;
                                 end if;
-                                r_size_b        <= to_unsigned(128, r_size_b'length);       --block size to be transferred
-                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0         
-                                nvr_cmd_b       <= cFramRead;  --read all
-                                substate := 1;
+                                                                       
                             when 1 =>
                                 start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
                                 substate := 2;
+                            when 2 =>
+                                 if  is_nvr_cmd_done = '1' then
+                                     substate := substate + 1;
+                                 end if;
                             when others =>
-                                if  is_nvr_cmd_done = '1' then
-                                    state    := st_mainLoop;
-                                    substate := 0;
+                                if is_factory_rst = false then
+                                    state    := st_mainLoop;   ----2025-01-14, we go to st_setSerial if serial is to be set
+                                else
+                                    state    := st_setSerial;   ----2025-01-14, we go to st_setSerial if serial is to be set
                                 end if;
+                                substate := 0;
                         end case;          
 
                    -- state is flash mnp to miniprint  iic fram
@@ -1113,6 +1062,193 @@ process_iic:    process(hiclk)
                                     nvr_cmd_b <= cFramNop;
                                 end if;
                             end case;
+
+                    --We are here because this is a factory reset, a first use, or a corrupted sys conf area
+                    --We are to reinit the serial number at address 15, 16, 17. at @15 it is X"x3"
+                    --x being the MSB of serial then the LSB in 17
+                    
+                    when st_setSerial   =>
+                       case substate is 
+                            when 0 =>
+                                r_device_b      <= "001";      --hm6508  ram. ie MYNVRAMMIRROR (double port ram)                                
+                                bd_addr_b       <= ("0000", cSRSerial0);    
+                                bd_din_b        <= ident(3 downto 0)&"0011";
+                                if ident /= (1 to ident'length =>'0') then
+                                    start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                    nvr_cmd_b       <= cFramBufWrite;  --read all                                
+                                    substate := 1;
+                                end if;
+                            when 1 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := 2;
+                            when 2 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := 3;
+                                end if;
+                            when 3 =>
+                                r_device_b      <= "001";      --hm6508  ram. ie MYNVRAMMIRROR (double port ram)                                
+                                bd_addr_b       <= ("0000", cSRSerial1);    
+                                bd_din_b        <= ident(11 downto 4);     
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramBufWrite;  --read all
+                                substate := 4;
+                            when 4 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := 5;
+                            when 5 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := 6;
+                                end if;
+                            when 6 =>
+                                r_device_b      <= "001";      --hm6508  ram. ie MYNVRAMMIRROR (double port ram)     
+                                bd_addr_b       <= ("0000", cSRSerial2);                                        
+                                bd_din_b        <=ident(19 downto 12);                                
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramBufWrite;  --read all
+                                substate := 7;
+                            when 7 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := 8;
+                            when 8 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := 9;
+                                end if;
+                            when 9 =>
+                                r_device_b      <= "001";      --hm6508  ram. ie MYNVRAMMIRROR (double port ram)                                
+                                bd_addr_b       <= ("0000", cSRModel_0);    
+                                bd_din_b        <= X"CE";
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramBufWrite;  --read all
+                                substate := 10;
+                            when 10 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := 11;
+                            when 11 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := 12;
+                                end if;
+                            when 12 =>
+                                r_device_b      <= "001";      --hm6508  ram. ie MYNVRAMMIRROR (double port ram)                                
+                                bd_addr_b       <= ("0000", cSRModel_1);    
+                                bd_din_b        <= X"CA";
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramBufWrite;  --read all
+                                substate := 13;
+                            when 13 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := 14;
+                            when 14 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := 15;
+                                end if;                                
+                                
+                            when 15 =>
+                                --now write result to iic
+                                r_device_b      <= "001";      --hm6508  ram. ie MYNVRAMMIRROR (double port ram)                                
+                                r_size_b        <= to_unsigned(128, r_size_b'length);       --block size to be transferred
+                                r_baseAddr_b    <= cIICHmsysBase;   --base address in the fram                        
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramWrite;
+                                substate := 16;  -- 
+                            when 16 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := 17;
+                                
+                            when others =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := 0;
+                                    state    := st_initcrcs; --goto main loop
+                                    nvr_cmd_b <= cFramNop;
+                                end if;
+
+                        end case;
+ 
+ 
+                    when st_initcrcs =>
+                        case substate is
+                            when 0 =>
+                                r_device_b      <= "000";
+                                bd_addr_b       <= ("0000", cSCFltchGCtlAdd);    
+                                bd_din_b        <= X"5D";
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramBufWrite;  --read all
+                                substate := 1;
+                            when 1 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := substate+1;
+                            when 2 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := substate+1;
+                                end if;                                
+                                
+                            when 3 =>
+                                r_device_b      <= "000";
+                                bd_addr_b       <= std_logic_vector( unsigned("0000"&cSCFltchGCtlAdd) + 1 );    
+                                bd_din_b        <= X"7F";
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramBufWrite;  --read all
+                                substate := substate+1;
+                            when 4 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := substate+1;
+                            when 5 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := substate+1;
+                                end if;                                
+                                
+                            when 6 =>
+                                r_device_b      <= "000";
+                                bd_addr_b       <= ("0000", cSCFltchRCtlAdd);    
+                                bd_din_b        <= X"38";
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramBufWrite;  --read all
+                                substate := substate+1;
+                            when 7 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := substate+1;
+                            when 8 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := substate+1;
+                                end if;                                
+                                
+                            when 9 =>
+                                r_device_b      <= "000";
+                                bd_addr_b       <= std_logic_vector( unsigned("0000"&cSCFltchRCtlAdd) + 1 );    
+                                bd_din_b        <= X"DC";
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramBufWrite;  --read all
+                                substate := substate+1;
+                            when 10 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := substate+1;
+                            when 11 =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := substate+1;
+                                end if;                                
+
+                            when 12 =>
+                                --now write result to iic
+                                r_device_b      <= "000";   --sys config ram
+                                r_size_b        <= to_unsigned(128, r_size_b'length);       --block size to be transferred
+                                r_baseAddr_b    <= cIICConfgBase;   --base address in the fram                        
+                                start_nvr_cmd_b <= '1'; --edge sensitive, was initialized to 0
+                                nvr_cmd_b       <= cFramWrite;
+                                substate := substate+1;
+                            when 13 =>
+                                start_nvr_cmd_b <= '0'; --reset signal to be able to start a new command later
+                                substate := substate+1;
+                                
+                            when others =>
+                                if  is_nvr_cmd_done = '1' then
+                                    substate := 0;
+                                    state    := st_mainLoop;    
+                                    nvr_cmd_b <= cFramNop;
+                                end if;
+                            
+                        end case;                           
+--
+                 
+
                                  
                     when st_idle    =>
                         cpu_po_int <= '0';

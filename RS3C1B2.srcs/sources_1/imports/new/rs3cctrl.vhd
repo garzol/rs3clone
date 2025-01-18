@@ -448,6 +448,8 @@ component startupmng is
            r_device         : out       std_logic_vector(2 downto 0);  
            
            settings1        : out       std_logic_vector(7 downto 0);
+           ident            : in        std_logic_vector(8*8-1 downto 0);
+           id_configured    : in        std_logic;
            status           : out       std_logic_vector(7 downto 0)
                   
    );
@@ -481,6 +483,7 @@ component  s25fl064l IS
     reset_n    : IN      STD_LOGIC;                      --active low asynchronous reset
     S25_tx_ena : IN      STD_LOGIC;                      --enable transaction with DAC
     S25_DID    : OUT     STD_LOGIC_VECTOR(8*8-1 downto 0);  --Device id
+    configured : out     std_logic;
     busy       : OUT     STD_LOGIC;                      --indicates when transactions with DAC can be initiated
     miso       : IN      STD_LOGIC;                      --SPI bus from SPI Flash: master in, slave out (DOUT)
     mosi       : OUT     STD_LOGIC;                      --SPI bus to SPI Flash: master out, slave in (DIN)
@@ -687,7 +690,7 @@ signal S25_tx_ena         : std_logic := '0';
 
 --Infos from SPI
 signal S25_DID            : std_logic_vector(8*8-1 downto 0);
-
+signal id_configured      : std_logic := '0';
 
 --reset ram of the game rom to its initial value (the coe file)
 
@@ -1242,6 +1245,10 @@ begin
                         r_device            => r_device,
                   
                         settings1           => settings1,
+                        
+                        ident               =>  S25_DID, --cIdentSw,
+                        id_configured       => id_configured,
+                        
                         status              => startup_status
 
                     );
@@ -1290,9 +1297,10 @@ S25FL064_INST :  s25fl064l
     spi_clk_div    => 5)  --spi_clk_div = clk_freq/100 (answer rounded up)
   PORT MAP(
     clk            => SYSCLK,                      --system clock
-    reset_n        => not nOEIOs, --'1',                    --active low asynchronous reset
+    reset_n        => not CPU_PO, --not nOEIOs, --'1',                    --active low asynchronous reset
     S25_tx_ena     => '0', --off, '1', --S25_tx_ena,
     S25_DID        => S25_DID,
+    configured     => id_configured,
     busy           => open,             --indicates when transactions with DAC can be initiated
     miso           => SO_IO1,                      --SPI bus from S25L064L flash: master in, slave out (DOUT)
     mosi           => SI_IO0,                      --SPI bus to S25L064L flash: master out, slave in (DIN)

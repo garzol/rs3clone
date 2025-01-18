@@ -32,6 +32,7 @@ ENTITY s25fl064l IS
     reset_n    : IN      STD_LOGIC;                      --active low asynchronous reset
     S25_tx_ena : IN      STD_LOGIC;                      --enable transaction with DAC
     S25_DID    : OUT     STD_LOGIC_VECTOR(8*8-1 downto 0);  --Device id
+    configured : out     std_logic;
     busy       : OUT     STD_LOGIC;                      --indicates when transactions with DAC can be initiated
     miso       : IN      STD_LOGIC;                      --SPI bus from Flash: master in, slave out (DOUT)
     mosi       : OUT     STD_LOGIC;                      --SPI bus to DAC: master out, slave in (DIN)
@@ -40,7 +41,7 @@ ENTITY s25fl064l IS
 END s25fl064l;
 
 ARCHITECTURE behavior OF s25fl064l IS
-  TYPE machine IS(start, configure, pause, ready, send_data); --needed states
+  TYPE machine IS(start, configure, pause, ready, send_data, done); --needed states
   --for UID    : <4Bh><Dummy1>..<Dummy4><UIDMSB7>..<UIDLSB0> 13B
   --for  Dev ID: <9Fh><D1><D2><D3> (cypress id=01, dev id=60h, 64Mb=17h) 4B
   --for mem read:<13h><AMSB3>..<ALSB0><D@A><D@A+1>etc...5B+1minimum 
@@ -53,6 +54,7 @@ ARCHITECTURE behavior OF s25fl064l IS
   SIGNAL spi_rx_data   : STD_LOGIC_VECTOR(cTransacSz-1 DOWNTO 0);       --transmit data for SPI component
 
   SIGNAL  S25_DID_int  : STD_LOGIC_VECTOR(8*8-1 downto 0) := (others=>'0');
+  signal  config_int   : std_logic := '0';
   SIGNAL  S25_MEM_int  : STD_LOGIC_VECTOR(13*8-1 downto 0) := (others=>'0');
 
   --declare SPI Master component
@@ -82,6 +84,7 @@ BEGIN
 
   --permanent assignments
   S25_DID      <= S25_DID_int;
+  configured   <= config_int;
   --S25_MEM      <= S25_MEM_int;
   
   --instantiate the SPI Master component
@@ -149,7 +152,11 @@ BEGIN
           ELSE                           --20ns has elapsed
             count := 0;                    --clear counter
             busy <= '0';                   --indicate component is ready for a transaction
-            state <= ready;                --advance to ready state 
+            if S25_DID_int = (1 to S25_DID_int'length => '0') then
+                state <= start; --ready;                --advance to ready state 
+            else
+                state <= ready;                --advance to ready state 
+            end if;
           END IF;
         
         --wait for a new transaction and latch it in
@@ -168,13 +175,15 @@ BEGIN
           ELSIF(spi_busy = '1') THEN                       --transaction underway
             spi_ena <= '0';                                  --clear enable                            
           ELSE                                             --transaction complete
-            state <= pause;                                  --return to pause state
+            state <= done; --pause;                                  --return to pause state
             S25_MEM_int <= spi_rx_data;
           END IF;
 
         --default to start state
         WHEN OTHERS => 
-          state <= start;
+          --state <= start;
+          config_int <= '1';
+          state <= done;
 
       END CASE;      
     END IF;
