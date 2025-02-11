@@ -30,6 +30,13 @@ Hence to recreate the project in your environnment, you have to do as follows:
 6. Then, add the constraints file to the project (from  RS3C1B201.src/constrs_1)
 7. You must use Vivado 2024.2.1 or later versio
 8. You'll have to update all the IPs (from the tab IP sources, select all files and right click IP update)
+9. Certain vhdl files are written for VHDL-2008. Then they require to be of type vhdl 2008. Turn their type to VHDL-2008 in their property dialog box:
+    1. 10788.vhd
+    2. ioxadapter.vhd
+    3. romctrl.vhd
+    4. romctrlg.vhd
+    5. startupmng.vhd 
+   
+8. There you go (well, normally...)
 
    
-8. 
