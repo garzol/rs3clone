@@ -18,3 +18,18 @@ all 3 packages are interdependant somehow and a version of 1 line may be incompa
 
 
 
+## Recreate vivado project.  
+Because of the structure of Vivado, it is impossible to put an entire Vivado project under the control of git.  
+Then what we've done is we "gitted" only the sources.    
+Hence to recreate the project in your environnment, you have to do as follows:  
+1. In vivado, create a new empty project
+2. Project->settings select project part: XC7S6FTGB196-1
+3. At the same level as project_1.srcs, put entire directory RS3C1B201.src from git
+4. Remove project_1.srcs, and rename RS3C1B201.src as project_1.srcs
+5. In the project view window sources, click '+' to add sources. Add RS3C1B201.src/sources_1 with its3 subdirectories at once.
+6. Then, add the constraints file to the project (from  RS3C1B201.src/constrs_1)
+7. You must use Vivado 2024.2.1 or later versio
+8. You'll have to update all the IPs (from the tab IP sources, select all files and right click IP update)
+
+   
+8. 
