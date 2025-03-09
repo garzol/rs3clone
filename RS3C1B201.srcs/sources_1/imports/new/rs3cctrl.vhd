@@ -730,6 +730,7 @@ signal id_configured      : std_logic := '0';
 signal p_trigger_fwrite   : boolean;
 signal p_ab_a1762plus     : STD_LOGIC_VECTOR (11 downto 1);
 signal p_ab_a1761plus     : STD_LOGIC_VECTOR (11 downto 1);
+signal p_en8          : std_logic;
 
 
 
@@ -915,6 +916,8 @@ begin
          
        SelDir_B2 <= A1762_SELIODir;
 
+       p_en8 <= en8_int and (r_device(2));
+
        p_ab_a1762plus <= AB(12)&AB(10 downto 1);      
        A1762plus : RRIOTA17G    
                 Generic map(
@@ -953,8 +956,7 @@ begin
                     r_device =>  r_device(1 downto 0), -- gameprom=00, A1762=01
                     
                     -- makes the courroie de transmission between i2C module and nvram owner                  
-                    en8            => en8_int and
-                                      (r_device(2)),
+                    en8            => p_en8,
                     we8            => we8_int,
                     addr8          => addr8_int,  --game rom addr field is 10 downto 0 only...                  
                                                   --because it's either 1KB of A17 rom
@@ -1009,8 +1011,7 @@ begin
                     
                     -- makes the courroie de transmission between i2C module and nvram owner                  
                     r_device       => r_device(1 downto 0),
-                    en8            => en8_int and
-                                      (not r_device(2)),
+                    en8            => ,
                     we8            => we8_int,
                     addr8          => addr8_int(6 downto 0),  --nvram addr field is 6 downto 0 only...                  
                     dout8          => hdout8_int,   
