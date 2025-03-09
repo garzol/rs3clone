@@ -734,6 +734,7 @@ signal p_en8              : std_logic;
 signal p_IO_data_over     : std_logic_vector(39 downto 0);
 signal p_brd_po           : std_logic;
 signal p_nSPO             : std_logic;
+signal p_reset_n          : std_logic;
 
 --reset ram of the game rom to its initial value (the coe file)
 
@@ -1379,13 +1380,15 @@ p_supershort_rest: process(SYSCLK)
 
     end process p_supershort_rest;
 
+		
+p_reset_n <= not short_reset;
 S25FL064_INST :  s25fl064l 
   GENERIC MAP(
     clk_freq       => 50,  --system clock frequency in MHz
     spi_clk_div    => 5)  --spi_clk_div = clk_freq/100 (answer rounded up)
   PORT MAP(
     clk            => SYSCLK,                      --system clock
-    reset_n        => not short_reset, --not nOEIOs, --'1',                    --active low asynchronous reset
+    reset_n        => p_reset_n, --not nOEIOs, --'1',                    --active low asynchronous reset
     S25_tx_ena     => '0', --off, '1', --S25_tx_ena,
     S25_DID        => S25_DID,
     configured     => id_configured,
