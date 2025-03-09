@@ -732,8 +732,8 @@ signal p_ab_a1762plus     : STD_LOGIC_VECTOR (11 downto 1);
 signal p_ab_a1761plus     : STD_LOGIC_VECTOR (11 downto 1);
 signal p_en8              : std_logic;
 signal p_IO_data_over     : std_logic_vector(39 downto 0);
-
-
+signal p_brd_po           : std_logic;
+signal p_nSPO             : std_logic;
 
 --reset ram of the game rom to its initial value (the coe file)
 
@@ -1274,12 +1274,13 @@ begin
 --    end process p_soft_rest;
     soft_reset <= soft_reset_uart;
 
+    p_brd_po         <= not SW2 or soft_reset;
     p_trigger_fwrite <= true when AB=X"5FC" else false;
     STARTUP_INST : startupmng port map(
                         hiclk               => SYSCLK,
                    
                         --in, board reset (HW coming from Switch for example, or SW coming from serial
-                        brd_po              => not SW2 or soft_reset,
+                        brd_po              => p_brd_po,
            
                         --out, management of po signal which is the HW reset of pps4 core
                         cpu_po              => CPU_PO,      --this is the pps4 core reset signal 
@@ -1319,10 +1320,11 @@ begin
 
                     );
 
+p_nSPO  <= not SPO;	    
 SWMTRX_INST :  swmtrx port map (
                         hiclk             => SYSCLK,
 
-                        reset_n           => not SPO,
+                        reset_n           => p_nSPO,
                         
                         sw_sig            => sw_sig,
                         sw_strb           => sw_strb,
