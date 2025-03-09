@@ -1011,7 +1011,7 @@ begin
                     
                     -- makes the courroie de transmission between i2C module and nvram owner                  
                     r_device       => r_device(1 downto 0),
-                    en8            => ,
+                    en8            => p_en8,
                     we8            => we8_int,
                     addr8          => addr8_int(6 downto 0),  --nvram addr field is 6 downto 0 only...                  
                     dout8          => hdout8_int,   
