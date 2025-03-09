@@ -725,6 +725,12 @@ signal S25_tx_ena         : std_logic := '0';
 signal S25_DID            : std_logic_vector(8*8-1 downto 0);
 signal id_configured      : std_logic := '0';
 
+
+--intermediate signals for retropedaling from VHDL2008
+signal p_trigger_fwrite   : boolean;
+
+
+
 --reset ram of the game rom to its initial value (the coe file)
 
 begin
@@ -1260,7 +1266,8 @@ begin
 
 --    end process p_soft_rest;
     soft_reset <= soft_reset_uart;
-    
+
+    p_trigger_fwrite <= true when AB=X"5FC" else false;
     STARTUP_INST : startupmng port map(
                         hiclk               => SYSCLK,
                    
@@ -1270,7 +1277,7 @@ begin
                         --out, management of po signal which is the HW reset of pps4 core
                         cpu_po              => CPU_PO,      --this is the pps4 core reset signal 
 
-                        trigger_fwrite      => true when AB=X"5FC" else false,
+                        trigger_fwrite      => p_trigger_fwrite,
 
                         --comes from serialtrace entity
                         bckdr_fl_req        => bckdr_fl_req,        -- pos. edge: a flash is requested, 
