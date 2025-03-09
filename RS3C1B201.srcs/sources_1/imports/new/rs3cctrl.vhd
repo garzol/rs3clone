@@ -650,6 +650,7 @@ signal gpio11696_status    : std_logic_vector(7 downto 0);  --no usage yet, alwa
 alias  outx_11696_grpC     : STD_LOGIC_VECTOR(4 DOWNTO 1) is GPIO11696_OutX_int(12 DOWNTO 9);
 alias  outx_11696_grpD     : STD_LOGIC_VECTOR(4 DOWNTO 1) is GPIO11696_OutX_int(16 DOWNTO 13);
 signal tonesel             : std_logic_vector(4 downto 0);
+signal p_tonesel           : std_logic_vector(4 downto 0);
 --next is temporary for multimanagement of outsound
 signal out_sound           : std_logic;
 
@@ -1033,11 +1034,12 @@ begin
     tonesel <=     (outx_11696_grpC(4),
                     outx_11696_grpD(1),outx_11696_grpD(2),
                     outx_11696_grpD(3),outx_11696_grpD(4));
-               
+
+    p_tonesel <= tonesel when bdisplay_over = false else B3_data_over(16 downto 12);
     CHIMES :        gentones
     Port map (
            hiclk         => SYSCLK,
-           tonesel       => tonesel when bdisplay_over = false else B3_data_over(16 downto 12),
+           tonesel       => p_tonesel,
            soundout      => out_sound
            );    
              
