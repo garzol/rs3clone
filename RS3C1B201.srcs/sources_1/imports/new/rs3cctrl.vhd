@@ -730,7 +730,8 @@ signal id_configured      : std_logic := '0';
 signal p_trigger_fwrite   : boolean;
 signal p_ab_a1762plus     : STD_LOGIC_VECTOR (11 downto 1);
 signal p_ab_a1761plus     : STD_LOGIC_VECTOR (11 downto 1);
-signal p_en8          : std_logic;
+signal p_en8              : std_logic;
+signal p_IO_data_over     : std_logic_vector(39 downto 0);
 
 
 
@@ -1139,7 +1140,9 @@ begin
                                       vs0     => VS0,
                                       vs1     => VS1,
                                       vs2     => VS2);
-                                      
+
+      p_IO_data_over      <= B3_data_over&B2_data_over;
+
       IOXADAPT : ioxAdapter port map (
                     hiclk             => SYSCLK,
                     spo               => SPO,
@@ -1161,7 +1164,7 @@ begin
                     seliobank         => open,
                     latchiobank       => open,
 
-                    IO_data_over      => B3_data_over&B2_data_over, --(31 downto 16=>'0')&"0101010101010101",
+                    IO_data_over      => p_IO_data_over, --(31 downto 16=>'0')&"0101010101010101",
                     bIOs_over         => bdisplay_over,
                     
                     settings1         => settings1
