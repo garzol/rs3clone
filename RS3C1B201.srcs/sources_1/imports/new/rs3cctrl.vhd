@@ -728,6 +728,8 @@ signal id_configured      : std_logic := '0';
 
 --intermediate signals for retropedaling from VHDL2008
 signal p_trigger_fwrite   : boolean;
+signal p_ab_a1762plus     : STD_LOGIC_VECTOR (11 downto 1);
+signal p_ab_a1761plus     : STD_LOGIC_VECTOR (11 downto 1);
 
 
 
@@ -878,7 +880,7 @@ begin
 
       SelDir_B1<= A1761_SELIODir;
 
-            
+      p_ab_a1761plus <= '0'&AB(10 downto 1);      
       A1761plus : RRIOTA17    
                 Generic map(
                    --config for A1752:
@@ -906,13 +908,14 @@ begin
                     inpx     =>  A1761_InpX_int_alt,  
                     outx     =>  A1761_OutX_int,
                     rrsel    =>  A1761_rrsel,
-                    ab       =>  '0'&AB(10 downto 1),
+                    ab       =>  p_ab_a1761plus,
                     din      =>  ID,
                     dout     =>  ID_out_A1761,
                     wio      =>  WIO);
          
        SelDir_B2 <= A1762_SELIODir;
-       
+
+       p_ab_a1762plus <= AB(12)&AB(10 downto 1);      
        A1762plus : RRIOTA17G    
                 Generic map(
                    --config for A1752:
@@ -942,7 +945,7 @@ begin
                     inpx     =>  A1762_InpX_int_alt,  
                     outx     =>  A1762_OutX_int,
                     rrsel    =>  AB(11),
-                    ab       =>  AB(12)&AB(10 downto 1),
+                    ab       =>  p_ab_a1762plus,
                     din      =>  ID,
                     dout     =>  ID_out_A1762,
                     wio      =>  WIO,
